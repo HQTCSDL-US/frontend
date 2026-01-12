@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./components/layout/Header";
 import Index from "./pages/Index";
-import TripDetailPage from "./pages/TripDetailPage";
+import TripsPage from './pages/TripsPage';
+import TripDetailPage from './pages/TripDetailPage';
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
