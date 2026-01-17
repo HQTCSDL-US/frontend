@@ -9,6 +9,7 @@ import TripsPage from './pages/TripsPage';
 import TripDetailPage from './pages/TripDetailPage';
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
+import ConcurrencyDemoPage from "./pages/ConcurrencyDemoPage";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/trip/:tripId" element={<TripDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/demo" element={<ConcurrencyDemoPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
