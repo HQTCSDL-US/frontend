@@ -6,6 +6,7 @@ import { HomePage } from "./pages/HomePage";
 import TripListPage from "./pages/TripListPage";
 import BookTripPage from "./pages/BookTripPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
+import PhantomDemoPage from "./pages/PhantomDemoPage";
 import "./App.css";
 
 function App() {
@@ -44,6 +45,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyTicketsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/phantom-demo"
+              element={
+                <ProtectedRoute>
+                  <PhantomDemoPage />
                 </ProtectedRoute>
               }
             />

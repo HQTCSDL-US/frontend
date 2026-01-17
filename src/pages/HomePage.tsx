@@ -79,7 +79,7 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card
               className="bg-slate-900 border-slate-800 hover:border-blue-500/50 transition-all cursor-pointer group relative overflow-hidden h-64"
               onClick={() => navigate("/trips")}
@@ -125,6 +125,31 @@ export const HomePage: React.FC = () => {
                 </CardDescription>
                 <div className="mt-4 flex items-center text-purple-400 font-bold text-sm">
                   Quản lý vé{" "}
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card
+              className="bg-slate-900 border-slate-800 hover:border-purple-500/50 transition-all cursor-pointer group relative overflow-hidden h-64"
+              onClick={() => navigate("/phantom-demo")}
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <ShieldAlert className="h-32 w-32 text-purple-500" />
+              </div>
+              <CardHeader className="h-full flex flex-col justify-end p-8">
+                <div className="p-3 bg-purple-600/10 rounded-xl w-fit group-hover:bg-purple-600 transition-all duration-300 mb-4">
+                  <ShieldAlert className="h-8 w-8 text-purple-500 group-hover:text-white" />
+                </div>
+                <CardTitle className="text-2xl text-white">
+                  Báo Cáo Doanh Thu
+                </CardTitle>
+                <CardDescription className="text-slate-400 mt-2">
+                  Xuất báo cáo doanh thu theo chuyến tàu. Demo Phantom Read với
+                  isolation level khác nhau.
+                </CardDescription>
+                <div className="mt-4 flex items-center text-purple-400 font-bold text-sm">
+                  Xem báo cáo{" "}
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardHeader>
