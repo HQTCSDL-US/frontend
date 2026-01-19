@@ -7,6 +7,7 @@ import TripListPage from "./pages/TripListPage";
 import BookTripPage from "./pages/BookTripPage";
 import MyTicketsPage from "./pages/MyTicketsPage";
 import PhantomDemoPage from "./pages/PhantomDemoPage";
+import PricingRuleManagementPage from "./pages/PricingRuleManagementPage";
 import "./App.css";
 
 function App() {
@@ -53,6 +54,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PhantomDemoPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pricing-rules"
+              element={
+                <ProtectedRoute>
+                  <PricingRuleManagementPage />
                 </ProtectedRoute>
               }
             />

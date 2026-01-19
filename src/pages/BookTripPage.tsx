@@ -33,9 +33,8 @@ const BookTripPage: React.FC = () => {
     []
   );
   const [selectedCarriage, setSelectedCarriage] = useState<number>(1);
-  const [selectedSeat, setSelectedSeat] = useState<AvailableTicket | null>(
-    null
-  );
+  const [selectedSeats, setSelectedSeats] = useState<AvailableTicket[]>([]);
+  const [batchMode, setBatchMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [demoStatus, setDemoStatus] = useState<{
@@ -100,7 +99,59 @@ const BookTripPage: React.FC = () => {
   }, [fetchCarriageData, selectedCarriage]);
 
   const handleBook = async (safe: boolean) => {
-    if (!selectedSeat || !tripId) return;
+    if (!tripId) return;
+
+    // Batch booking mode
+    if (batchMode && selectedSeats.length > 0) {
+      setSubmitting(true);
+      setDemoStatus({
+        type: "pending",
+        message: `Đang đặt ${selectedSeats.length} vé ${safe ? "AN TOÀN" : "KHÔNG AN TOÀN"}...`,
+      });
+
+      try {
+        const request = {
+          customerId: 1, // TODO: Get from auth context
+          tripId: parseInt(tripId),
+          departureStationId: tripDetails?.tripInfo.departureStationId || 0,
+          arrivalStationId: tripDetails?.tripInfo.arrivalStationId || 0,
+          ticketCount: selectedSeats.length,
+          seatIds: selectedSeats.map(seat => seat.placeId), // Specific seats to book
+        };
+
+        const res = safe
+          ? await concurrencyService.batchBookTicketsSafe(request)
+          : await concurrencyService.batchBookTicketsUnsafe(request);
+
+        if (res.success) {
+          const discrepancyMsg = res.hasDiscrepancy
+            ? " ⚠️ PHÁT HIỆN UNREPEATABLE READ: Giá vé không nhất quán!"
+            : " ✅ Tất cả vé cùng giá";
+          setDemoStatus({
+            type: res.hasDiscrepancy ? "error" : "success",
+            message: res.message + discrepancyMsg,
+            details: res as unknown as Record<string, unknown>,
+          });
+          fetchCarriageData(selectedCarriage);
+          setSelectedSeats([]);
+        } else {
+          setDemoStatus({ type: "error", message: res.message });
+        }
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } } };
+        setDemoStatus({
+          type: "error",
+          message: err.response?.data?.message || "Lỗi hệ thống khi đặt vé.",
+        });
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Single ticket booking (original logic)
+    const selectedSeat = selectedSeats[0];
+    if (!selectedSeat) return;
 
     setSubmitting(true);
     setDemoStatus({
@@ -111,7 +162,7 @@ const BookTripPage: React.FC = () => {
     try {
       const request = {
         tripId: parseInt(tripId),
-        seatId: selectedSeat.placeId, // Backend uses place_id for seat/bed
+        seatId: selectedSeat.placeId,
         fromStationId: tripDetails?.tripInfo.departureStationId || 0,
         toStationId: tripDetails?.tripInfo.arrivalStationId || 0,
       };
@@ -126,8 +177,8 @@ const BookTripPage: React.FC = () => {
           message: res.message,
           details: res.data as unknown as Record<string, unknown>,
         });
-        // Refresh availability
         fetchCarriageData(selectedCarriage);
+        setSelectedSeats([]);
       } else {
         setDemoStatus({ type: "error", message: res.message });
       }
@@ -139,6 +190,19 @@ const BookTripPage: React.FC = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const toggleSeatSelection = (ticket: AvailableTicket) => {
+    if (batchMode) {
+      const isSelected = selectedSeats.some(s => s.placeId === ticket.placeId);
+      if (isSelected) {
+        setSelectedSeats(prev => prev.filter(s => s.placeId !== ticket.placeId));
+      } else if (selectedSeats.length < 4) {
+        setSelectedSeats(prev => [...prev, ticket]);
+      }
+    } else {
+      setSelectedSeats([ticket]);
     }
   };
 
@@ -238,11 +302,10 @@ const BookTripPage: React.FC = () => {
                       ? "default"
                       : "outline"
                   }
-                  className={`h-12 flex flex-col items-center justify-center gap-0.5 ${
-                    selectedCarriage === carriage.carriageNumber
-                      ? "bg-blue-600 hover:bg-blue-700 border-blue-600"
-                      : "bg-slate-800 border-slate-700 hover:bg-slate-700"
-                  }`}
+                  className={`h-12 flex flex-col items-center justify-center gap-0.5 ${selectedCarriage === carriage.carriageNumber
+                    ? "bg-blue-600 hover:bg-blue-700 border-blue-600"
+                    : "bg-slate-800 border-slate-700 hover:bg-slate-700"
+                    }`}
                   onClick={() => setSelectedCarriage(carriage.carriageNumber)}
                 >
                   <span className="text-xs font-bold">
@@ -255,6 +318,38 @@ const BookTripPage: React.FC = () => {
                   </span>
                 </Button>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Batch Booking Toggle */}
+          <Card className="bg-slate-900 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-200">Chế độ đặt nhiều vé</h4>
+                  <p className="text-xs text-slate-400">Demo Unrepeatable Read</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setBatchMode(!batchMode);
+                    setSelectedSeats([]);
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${batchMode ? "bg-blue-600" : "bg-slate-700"
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${batchMode ? "translate-x-6" : "translate-x-1"
+                      }`}
+                  />
+                </button>
+              </div>
+              {batchMode && (
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  <p className="text-xs text-slate-400">
+                    ✓ Chọn tối đa 4 vé • Đã chọn: <strong className="text-blue-400">{selectedSeats.length}/4</strong>
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -337,18 +432,13 @@ const BookTripPage: React.FC = () => {
                                     <button
                                       key={bed.bedId}
                                       disabled={!isAvailable}
-                                      className={`relative h-14 rounded-md flex flex-col items-center justify-center font-bold transition-all ${
-                                        selectedSeat?.placeId ===
-                                          availableInfo?.placeId &&
-                                        selectedSeat?.placeId !== undefined
-                                          ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900"
-                                          : isAvailable
+                                      className={`relative h-14 rounded-md flex flex-col items-center justify-center font-bold transition-all ${selectedSeats.some(s => s.placeId === availableInfo?.placeId)
+                                        ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900"
+                                        : isAvailable
                                           ? "bg-slate-800 text-slate-300 border border-slate-700 hover:border-blue-500 hover:text-blue-400"
                                           : "bg-slate-800/20 text-slate-600 cursor-not-allowed border border-slate-800/50"
-                                      }`}
-                                      onClick={() =>
-                                        setSelectedSeat(availableInfo || null)
-                                      }
+                                        }`}
+                                      onClick={() => availableInfo && toggleSeatSelection(availableInfo)}
                                     >
                                       <span className="text-sm">
                                         {bed.bedNumber}
@@ -383,18 +473,13 @@ const BookTripPage: React.FC = () => {
                             <button
                               key={seat.seatId}
                               disabled={!isAvailable}
-                              className={`relative h-12 w-full rounded-md flex items-center justify-center font-bold transition-all ${
-                                selectedSeat?.placeId ===
-                                  availableInfo?.placeId &&
-                                selectedSeat?.placeId !== undefined
-                                  ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900"
-                                  : isAvailable
+                              className={`relative h-12 w-full rounded-md flex items-center justify-center font-bold transition-all ${selectedSeats.some(s => s.placeId === availableInfo?.placeId)
+                                ? "bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900"
+                                : isAvailable
                                   ? "bg-slate-800 text-slate-300 border border-slate-700 hover:border-blue-500 hover:text-blue-400"
                                   : "bg-slate-800/20 text-slate-600 cursor-not-allowed border border-slate-800/50"
-                              }`}
-                              onClick={() =>
-                                setSelectedSeat(availableInfo || null)
-                              }
+                                }`}
+                              onClick={() => availableInfo && toggleSeatSelection(availableInfo)}
                             >
                               {seat.seatNumber}
                               {!isAvailable && (
@@ -413,7 +498,7 @@ const BookTripPage: React.FC = () => {
           </Card>
 
           {/* Booking & Concurrency Controls */}
-          {selectedSeat && (
+          {selectedSeats.length > 0 && (
             <Card className="bg-slate-900 border-slate-800 border-l-4 border-l-blue-600 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -423,19 +508,32 @@ const BookTripPage: React.FC = () => {
                       Xác nhận đặt vé
                     </h3>
                     <p className="text-sm text-slate-400">
-                      Chuyến <strong>{tripDetails?.tripInfo.trainName}</strong>{" "}
-                      • Toa <strong>{selectedCarriage}</strong> • Ghế{" "}
-                      <strong>
-                        {selectedSeat.seatNumber || selectedSeat.bedNumber}
-                      </strong>
+                      {batchMode ? (
+                        <>
+                          <strong>{selectedSeats.length} vé</strong> • Chuyến <strong>{tripDetails?.tripInfo.trainName}</strong>
+                        </>
+                      ) : (
+                        <>
+                          Chuyến <strong>{tripDetails?.tripInfo.trainName}</strong>{" "}
+                          • Toa <strong>{selectedCarriage}</strong> • Ghế{" "}
+                          <strong>
+                            {selectedSeats[0].seatNumber || selectedSeats[0].bedNumber}
+                          </strong>
+                        </>
+                      )}
                     </p>
                     <div className="pt-2">
                       <span className="text-2xl font-black text-blue-400">
                         {new Intl.NumberFormat("vi-VN", {
                           style: "currency",
                           currency: "VND",
-                        }).format(selectedSeat.totalPrice)}
+                        }).format(
+                          batchMode
+                            ? selectedSeats[0].totalPrice * selectedSeats.length
+                            : selectedSeats[0].totalPrice
+                        )}
                       </span>
+                      {batchMode && <span className="text-xs text-slate-500 ml-2">(ước tính)</span>}
                     </div>
                   </div>
 
@@ -447,7 +545,7 @@ const BookTripPage: React.FC = () => {
                       onClick={() => handleBook(false)}
                     >
                       <ShieldAlert className="mr-2 h-4 w-4" />
-                      Unsafe Book (Demo)
+                      {batchMode ? "Batch Unsafe" : "Unsafe Book"}
                     </Button>
                     <Button
                       disabled={submitting}
@@ -455,20 +553,19 @@ const BookTripPage: React.FC = () => {
                       onClick={() => handleBook(true)}
                     >
                       <ShieldCheck className="mr-2 h-4 w-4" />
-                      Safe Book (Demo)
+                      {batchMode ? "Batch Safe" : "Safe Book"}
                     </Button>
                   </div>
                 </div>
 
                 {demoStatus && (
                   <div
-                    className={`mt-6 p-4 rounded-lg border flex items-start gap-3 animate-in shake-in duration-300 ${
-                      demoStatus.type === "success"
-                        ? "bg-green-500/10 border-green-500 text-green-400"
-                        : demoStatus.type === "error"
+                    className={`mt-6 p-4 rounded-lg border flex items-start gap-3 animate-in shake-in duration-300 ${demoStatus.type === "success"
+                      ? "bg-green-500/10 border-green-500 text-green-400"
+                      : demoStatus.type === "error"
                         ? "bg-red-500/10 border-red-500 text-red-400"
                         : "bg-amber-500/10 border-amber-500 text-amber-400"
-                    }`}
+                      }`}
                   >
                     {demoStatus.type === "success" ? (
                       <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" />

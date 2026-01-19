@@ -15,6 +15,7 @@ import {
   Search,
   ShieldAlert,
   ArrowRight,
+  DollarSign,
 } from "lucide-react";
 
 export const HomePage: React.FC = () => {
@@ -150,6 +151,30 @@ export const HomePage: React.FC = () => {
                 </CardDescription>
                 <div className="mt-4 flex items-center text-purple-400 font-bold text-sm">
                   Xem báo cáo{" "}
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card
+              className="bg-slate-900 border-slate-800 hover:border-green-500/50 transition-all cursor-pointer group relative overflow-hidden h-64"
+              onClick={() => navigate("/admin/pricing-rules")}
+            >
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <DollarSign className="h-32 w-32 text-green-500" />
+              </div>
+              <CardHeader className="h-full flex flex-col justify-end p-8">
+                <div className="p-3 bg-green-600/10 rounded-xl w-fit group-hover:bg-green-600 transition-all duration-300 mb-4">
+                  <DollarSign className="h-8 w-8 text-green-500 group-hover:text-white" />
+                </div>
+                <CardTitle className="text-2xl text-white">
+                  Quản Lý Giá Vé
+                </CardTitle>
+                <CardDescription className="text-slate-400 mt-2">
+                  Cấu hình quy tắc định giá. Demo Unrepeatable Read khi cập nhật giá trong lúc đặt vé.
+                </CardDescription>
+                <div className="mt-4 flex items-center text-green-400 font-bold text-sm">
+                  Quản lý giá{" "}
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardHeader>
